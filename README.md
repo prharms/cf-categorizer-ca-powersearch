@@ -1,6 +1,6 @@
 # Campaign Finance Contributor Categorization Tool
 
-This tool categorizes campaign contributors using Claude 4 Sonnet AI to analyze contributor names, employers, and occupations. **Now with enhanced architecture, parallel processing, and comprehensive error handling!**
+This tool categorizes campaign contributors using Claude 4 Sonnet AI to analyze contributor names, employers, and occupations. **Now with enhanced architecture, parallel processing, comprehensive error handling, and modern Python packaging!**
 
 Specifically designed for **California campaign finance data** exported from the Secretary of State's PowerSearch portal.
 
@@ -55,8 +55,13 @@ The PowerSearch export must contain these exact column names:
 ```bash
 git clone https://github.com/prharms/cf-categorizer-ca-powersearch.git
 cd cf-categorizer-ca-powersearch
-pip install -r requirements.txt
+pip install -e .
 echo "ANTHROPIC_API_KEY=your_key_here" > .env
+```
+
+**Legacy alternative**: If you prefer the traditional approach:
+```bash
+pip install -r requirements.txt
 ```
 
 ### Step 3: Categorize Your Data
@@ -105,16 +110,25 @@ Contributor Name,Contributor Category
 
 ## Installation
 
-### Option 1: Development Installation
+### Option 1: Modern Development Installation (Recommended)
 ```bash
 git clone https://github.com/prharms/cf-categorizer-ca-powersearch.git
 cd cf-categorizer-ca-powersearch
 pip install -e .
 ```
 
-### Option 2: Manual Setup
+### Option 2: Direct Dependencies Installation
 ```bash
 pip install -r requirements.txt
+```
+
+### Option 3: Development with Modern Tools
+```bash
+# Install with development dependencies
+pip install -e ".[dev]"
+
+# Or install development tools separately
+pip install -e ".[dev,test]"
 ```
 
 ### Environment Setup
@@ -125,6 +139,41 @@ ANTHROPIC_API_KEY=your_api_key_here
 # Optional configuration overrides
 API_MODEL=claude-sonnet-4-20250514
 LOG_LEVEL=INFO
+```
+
+## Modern Development Features
+
+This project uses modern Python development practices:
+
+### **Package Configuration**
+- **`pyproject.toml`**: Modern project configuration following PEP 621
+- **Declarative dependencies**: No more `setup.py` or `requirements.txt` parsing
+- **Optional dependency groups**: Install only what you need (`[dev]`, `[test]`)
+
+### **Development Tools**
+- **Black**: Automatic code formatting
+- **isort**: Import sorting and organization
+- **flake8**: Code linting and style checking
+- **mypy**: Static type checking
+- **pytest**: Modern testing framework with coverage
+
+### **Development Workflow**
+```bash
+# Set up development environment
+pip install -e ".[dev]"
+
+# Format code
+black src/ tests/
+isort src/ tests/
+
+# Run linting
+flake8 src/ tests/
+
+# Type checking
+mypy src/
+
+# Run tests with coverage
+pytest --cov=src tests/
 ```
 
 ## Usage
@@ -242,7 +291,7 @@ The tool categorizes contributors into these standardized categories:
 
 ## Project Structure
 
-Following **Python Best Practices** with enhanced modular design:
+Following **Modern Python Best Practices** with enhanced modular design:
 
 ```
 cf-categorizer-ca-powersearch/
@@ -251,23 +300,26 @@ cf-categorizer-ca-powersearch/
 │   ├── interim/                 # Raw AI categorization results
 │   └── processed/               # Final standardized categorization
 ├── src/
-│   ├── config/                  # Configuration management
 │   ├── api/                     # Anthropic API client and rate limiting
+│   ├── cli/                     # Command-line interface
+│   ├── config/                  # Configuration management
 │   ├── processing/              # Core categorization logic
 │   ├── utils/                   # Validation and logging utilities
-│   ├── cli/                     # Command-line interface
 │   └── __init__.py
 ├── scripts/                     # Executable entry points
 │   └── run_categorization.py    # Main entry point script
 ├── tests/                       # Comprehensive test suite
 ├── logs/                        # Application logs
 ├── .env                         # Environment variables (API keys)
-├── requirements.txt             # Python dependencies
+├── .gitignore                   # Git ignore patterns
+├── pyproject.toml               # Modern Python project configuration
+├── requirements.txt             # Python dependencies (legacy support)
 └── README.md                    # This file
 ```
 
 ## Configuration
 
+### Runtime Configuration
 The tool supports extensive configuration through environment variables:
 
 ```bash
@@ -284,15 +336,45 @@ FUZZY_MATCH_THRESHOLD=80
 PROGRESS_SAVE_INTERVAL=50
 ```
 
+### Development Configuration
+Modern development tools are configured in `pyproject.toml`:
+
+- **Black**: Code formatting (line length: 88)
+- **isort**: Import sorting (black-compatible)
+- **mypy**: Type checking (Python 3.8+)
+- **pytest**: Test discovery and execution
+- **coverage**: Test coverage reporting
+
+All tool configurations can be found in the `[tool.*]` sections of `pyproject.toml`.
+
 ## Testing
 
 Run the comprehensive test suite:
 
+### Modern Testing (Recommended)
 ```bash
-# Run all tests
-python tests/run_all_tests.py
+# Install test dependencies
+pip install -e ".[test]"
+
+# Run all tests with coverage
+pytest --cov=src tests/
 
 # Run specific test modules
+pytest tests/test_api_client.py
+pytest tests/test_processing.py
+pytest tests/test_config.py
+pytest tests/test_validation.py
+
+# Generate coverage report
+pytest --cov=src --cov-report=html tests/
+```
+
+### Legacy Testing
+```bash
+# Run all tests (legacy test runner)
+python tests/run_all_tests.py
+
+# Run specific test modules (legacy unittest)
 python -m unittest tests.test_api_client
 python -m unittest tests.test_processing
 python -m unittest tests.test_config
@@ -301,11 +383,28 @@ python -m unittest tests.test_validation
 
 ## Dependencies
 
+### Runtime Dependencies
 - **pandas**: For CSV file processing and data manipulation
 - **anthropic**: For Claude API integration and AI categorization
 - **python-dotenv**: For environment variable management
 - **fuzzywuzzy**: For fuzzy string matching and category standardization
 - **python-levenshtein**: For fast string similarity calculations
+- **dataclasses-json**: For configuration serialization
+- **typing-extensions**: For enhanced type hints
+
+### Development Dependencies (Optional)
+- **pytest**: For comprehensive testing
+- **pytest-cov**: For test coverage reporting
+- **black**: For code formatting
+- **isort**: For import sorting
+- **flake8**: For linting
+- **mypy**: For type checking
+- **pre-commit**: For git hooks
+
+Install development dependencies with:
+```bash
+pip install -e ".[dev]"
+```
 
 ## Data Flow
 
@@ -350,6 +449,18 @@ For issues with:
 - **PowerSearch exports**: Check the troubleshooting section above
 - **Tool functionality**: Open a GitHub issue with sample data (anonymized)
 - **API costs**: Monitor usage at [Anthropic Console](https://console.anthropic.com)
+
+## Modern Python Migration
+
+This project has been migrated to modern Python packaging standards:
+
+- **✅ `pyproject.toml`**: Modern project configuration (PEP 621)
+- **✅ Declarative dependencies**: No more `setup.py` complexity
+- **✅ Development tools**: Black, isort, flake8, mypy, pytest
+- **✅ Optional dependencies**: Install only what you need
+- **✅ Backwards compatibility**: `requirements.txt` still works
+
+The migration maintains full compatibility with existing workflows while providing modern development tools and practices.
 
 ---
 

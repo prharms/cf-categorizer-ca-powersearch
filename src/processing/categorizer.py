@@ -34,7 +34,8 @@ class ContributorCategorizer:
         """Initialize the categorizer."""
         self.config = config
         self.api_client = APIClient(config)
-        self.progress_file = "data/interim/progress.pkl"
+        self.progress_file = None  # Will be set per dataset
+        self.current_dataset_size = 0  # Track current dataset size
     
     def process_csv_file(self, input_file: str, output_file: Optional[str] = None) -> Dict[str, str]:
         """
@@ -76,8 +77,13 @@ class ContributorCategorizer:
         """Categorize contributors using AI with sequential processing."""
         logger.info("Starting AI categorization with sequential processing")
         
-        # Check for existing progress
-        processed_indices = self._load_progress()
+        # Set dataset-specific progress file and track dataset size
+        base_name = os.path.splitext(os.path.basename(interim_file))[0]
+        self.progress_file = os.path.join("data", "interim", f"{base_name}_progress.pkl")
+        self.current_dataset_size = len(df)
+        
+        # Check for existing progress (with dataset validation)
+        processed_indices = self._load_progress(len(df))
         start_index = len(processed_indices)
         
         if start_index > 0:
@@ -99,7 +105,7 @@ class ContributorCategorizer:
         # Process in parallel
         categories = [''] * len(df)
         
-        # Load existing categories from progress
+        # Load existing categories from progress (dataset validation already done in _load_progress)
         for idx in processed_indices:
             categories[idx] = processed_indices[idx]
         
@@ -142,7 +148,7 @@ class ContributorCategorizer:
                 
                 # Save progress periodically
                 if (i + 1) % self.config.processing.progress_save_interval == 0:
-                    self._save_progress(contrib['index'], category)
+                    self._save_progress(contrib['index'], category, self._get_current_dataset_size())
                     logger.info(f"Completed {i + 1}/{total} contributors")
                 
             except Exception as e:
@@ -201,6 +207,10 @@ class ContributorCategorizer:
             return None
         return str(value).strip()
     
+    def _get_current_dataset_size(self) -> int:
+        """Get the current dataset size."""
+        return self.current_dataset_size
+    
     def _auto_generate_output_path(self, input_path: str, stage: str) -> str:
         """Auto-generate output file path based on input file and processing stage."""
         base_name = os.path.splitext(os.path.basename(input_path))[0]
@@ -218,26 +228,60 @@ class ContributorCategorizer:
         output_filename = f"{base_name}{suffix}.csv"
         return os.path.join(output_dir, output_filename)
     
-    def _save_progress(self, index: int, category: str) -> None:
-        """Save processing progress."""
+    def _save_progress(self, index: int, category: str, dataset_size: int = None) -> None:
+        """Save processing progress with dataset metadata."""
         try:
-            progress = self._load_progress()
-            progress[index] = category
+            progress_data = self._load_progress_raw()
+            
+            # Initialize or update progress data
+            if 'categories' not in progress_data:
+                progress_data = {
+                    'categories': {},
+                    'dataset_size': dataset_size or 0,
+                    'created_at': datetime.now().isoformat()
+                }
+            
+            progress_data['categories'][index] = category
             
             os.makedirs(os.path.dirname(self.progress_file), exist_ok=True)
             with open(self.progress_file, 'wb') as f:
-                pickle.dump(progress, f)
+                pickle.dump(progress_data, f)
         except Exception as e:
             logger.warning(f"Failed to save progress: {str(e)}")
     
-    def _load_progress(self) -> Dict[int, str]:
-        """Load processing progress."""
+    def _load_progress(self, expected_dataset_size: int) -> Dict[int, str]:
+        """Load processing progress with dataset validation."""
         try:
-            if os.path.exists(self.progress_file):
-                with open(self.progress_file, 'rb') as f:
-                    return pickle.load(f)
+            progress_data = self._load_progress_raw()
+            
+            if not progress_data:
+                return {}
+            
+            # Validate dataset size matches
+            stored_size = progress_data.get('dataset_size', 0)
+            if stored_size != expected_dataset_size:
+                logger.warning(f"Progress file dataset size mismatch: stored={stored_size}, expected={expected_dataset_size}. Ignoring progress.")
+                return {}
+            
+            # Return just the categories dictionary
+            return progress_data.get('categories', {})
+            
         except Exception as e:
             logger.warning(f"Failed to load progress: {str(e)}")
+            return {}
+    
+    def _load_progress_raw(self) -> Dict:
+        """Load raw progress data without validation."""
+        try:
+            if self.progress_file and os.path.exists(self.progress_file):
+                with open(self.progress_file, 'rb') as f:
+                    data = pickle.load(f)
+                    # Handle old format (just dict of categories)
+                    if isinstance(data, dict) and 'categories' not in data:
+                        return {'categories': data, 'dataset_size': len(data)}
+                    return data
+        except Exception as e:
+            logger.warning(f"Failed to load raw progress: {str(e)}")
         
         return {}
     

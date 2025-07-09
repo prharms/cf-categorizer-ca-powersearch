@@ -19,8 +19,8 @@ def test_first_50_rows():
     # Load configuration
     config = load_config()
     
-    # Set up logging
-    config.logging.level = "INFO"
+    # Set up logging (verbose mode)
+    config.logging.level = "DEBUG"
     logger = setup_logging(config.logging, __name__)
     
     # Read original data
@@ -89,7 +89,10 @@ def test_first_50_rows():
         print(f"{category:<50} : {count:2d}")
     
     # Cleanup test file
-    os.remove(test_file)
+    try:
+        os.remove(test_file)
+    except FileNotFoundError:
+        pass  # File was already removed or doesn't exist
     
     print(f"\nTest completed successfully! Check the files:")
     print(f"  {results['interim']}")
